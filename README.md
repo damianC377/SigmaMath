@@ -1,2 +1,3 @@
 # SigmaMath
-Manuela Bolivar, Damian Cardenas
+## Manuela Bolivar
+## Damian Cardenas
