@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Área bajo la curva</title>
+    <script src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=6023d3abfc824e1e82744efe2270230c"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-left">
+          <!-- <div class="header-badge">
+            <div class="dot-live"></div>
+            Métodos Numéricos · Cálculo Integral
+          </div> -->
+          <h1>Área bajo la <span>curva</span></h1>
+          <p class="header-sub">
+            ∫ₐᵇ f(x) dx — Sumas de Riemann &amp; Integral Exacta
+          </p>
+        </div>
+      </header>
+
+      <div class="main-grid">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-title-icon">ƒ</div>
+                Definir función f(x)
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Grado del polinomio</label>
+                <select id="grado" onchange="buildCoefInputs()">
+                  <option value="" selected disabled>
+                    Seleccione un grado
+                  </option>
+                  <option value="1">1 — Lineal</option>
+                  <option value="2">2 — Cuadrático</option>
+                  <option value="3">3 — Cúbico</option>
+                  <option value="4">4 — Cuártico</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Coeficientes (mayor a menor grado)</label>
+                <div class="coef-grid" id="coef-grid"></div>
+                <div class="input-hint" id="coef-hint"></div>
+              </div>
+
+              <div class="form-group">
+                <label>Límites de integración</label>
+                <div class="input-row">
+                  <div>
+                    <input
+                      type="number"
+                      id="a-val"
+                      placeholder="a"
+                      step="0.1"
+                    />
+                    <div class="input-hint">Límite inferior a</div>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      id="b-val"
+                      placeholder="b"
+                      step="0.1"
+                    />
+                    <div class="input-hint">Límite superior b</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <input
+                  type="number"
+                  id="n-val"
+                  placeholder="n"
+                  min="1"
+                  max="200"
+                />
+                <div class="input-hint">Máx: 200</div>
+              </div>
+
+              <div id="error-msg" class="error-box"></div>
+
+              <button class="btn-compute" id="compute-btn" onclick="calcular()">
+                <span id="btn-label">Calcular Integral</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="section-gap">
+            <div class="delta-strip" id="delta-strip" style="display: none">
+              <div>
+                <div class="delta-label">Δx calculado</div>
+                <div class="delta-formula" id="delta-formula">—</div>
+              </div>
+              <div class="delta-value" id="delta-value">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="graph-container">
+            <div class="graph-toolbar">
+              <div class="card-title">
+                <div class="card-title-icon">◈</div>
+                Gráfica
+                <p id="graph-function"></p>
+              </div>
+              <div class="graph-method-tabs">
+                <button
+                  class="method-tab active"
+                  onclick="switchGraphMethod('inferior', this)"
+                >
+                  Inferior
+                </button>
+                <button
+                  class="method-tab"
+                  onclick="switchGraphMethod('superior', this)"
+                >
+                  Superior
+                </button>
+                <button
+                  class="method-tab"
+                  onclick="switchGraphMethod('riemann', this)"
+                >
+                  Riemann
+                </button>
+              </div>
+            </div>
+
+            <div style="position: relative">
+              <div id="desmos-container"></div>
+              <div class="zoom-controls">
+                <button onclick="zoomIn()">+</button>
+                <button onclick="zoomOut()">−</button>
+                <button onclick="zoomFit()">⊡</button>
+              </div>
+            </div>
+
+            <div class="graph-info">
+              <div class="graph-legend-item">
+                <div class="legend-dot" style="background: #63b3ed"></div>
+                f(x) — curva
+              </div>
+              <div class="graph-legend-item">
+                <div
+                  class="legend-dot"
+                  style="background: rgba(79, 209, 197, 0.5)"
+                ></div>
+                Área exacta
+              </div>
+              <div
+                class="graph-legend-item"
+                id="rect-legend"
+                style="display: none"
+              >
+                <div
+                  class="legend-dot"
+                  id="rect-legend-dot"
+                  style="background: #b794f4"
+                ></div>
+                <span id="rect-legend-label">Rectángulos Inf.</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="results-placeholder" class="card">
+            <div class="placeholder-state">
+              <div class="placeholder-icon">∫</div>
+              <div class="placeholder-text">
+                Configura la función y presiona <em>Calcular Integral</em> para
+                ver los resultados
+              </div>
+            </div>
+          </div>
+
+          <!-- Resultados -->
+          <div id="results-section" style="display: none">
+            <div class="results-grid">
+              <!-- Tarjeta suma inferior -->
+              <div
+                class="result-card inferior animate-in stagger-1"
+                id="card-inferior"
+              >
+                <div class="result-name">
+                  Suma Inferior
+                  <span class="result-badge badge-under">Subestima</span>
+                </div>
+
+                <div class="result-value" id="val-inferior">—</div>
+
+                <div class="result-formula">Σ f(xᵢ)Δx</div>
+
+                <div class="error-bar-container">
+                  <div class="error-bar" id="bar-inferior"></div>
+                </div>
+              </div>
+
+              <div
+                class="result-card superior animate-in stagger-2"
+                id="card-superior"
+              >
+                <div class="result-name">
+                  Suma Superior
+                  <span class="result-badge badge-over">Sobreestima</span>
+                </div>
+
+                <div class="result-value" id="val-superior">—</div>
+
+                <div class="result-formula">Σ f(xᵢ)Δx</div>
+
+                <div class="error-bar-container">
+                  <div class="error-bar" id="bar-superior"></div>
+                </div>
+              </div>
+
+              <div
+                class="result-card riemann animate-in stagger-3"
+                id="card-riemann"
+              >
+                <div class="result-name">
+                  Suma de Riemann
+                  <span class="result-badge badge-approx">Punto medio</span>
+                </div>
+
+                <div class="result-value" id="val-riemann">—</div>
+
+                <div class="result-formula">Σ f(x*)Δx</div>
+
+                <div class="error-bar-container">
+                  <div class="error-bar" id="bar-riemann"></div>
+                </div>
+              </div>
+
+              <div
+                class="result-card exacta animate-in stagger-4"
+                id="card-exacta"
+              >
+                <div class="result-name">
+                  Integral Exacta
+                  <span class="result-badge badge-exact">Exacta</span>
+                </div>
+
+                <div class="result-value exacta-val" id="val-exacta">—</div>
+
+                <div class="result-formula">∫ f(x) dx</div>
+
+                <div class="result-meta">
+                  <span id="funcion-str">f(x) = —</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="math-section">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-title-icon">≡</div>
+                Fundamentos Matemáticos
+              </div>
+            </div>
+
+            <div class="math-accordion acc-inferior">
+              <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                  <div class="accordion-icon">▽</div>
+                  Suma Inferior — Rectángulos izquierdos
+                </div>
+                <span class="accordion-chevron">▾</span>
+              </div>
+              <div class="accordion-body">
+                <div class="accordion-content">
+                  <div class="formula-block">
+                    L<sub>n</sub> = Δx · Σ<sub>i=0</sub
+                    ><sup>n-1</sup> f(x<sub>i</sub>)<br />
+                    <span class="formula-var">x<sub>i</sub></span>
+                    <span class="formula-op">=</span>
+                    <span class="formula-var">a</span>
+                    <span class="formula-op">+</span>
+                    <span class="formula-var">i</span> · Δx
+                  </div>
+                  <div class="concept-text">
+                    Usa el
+                    <span class="concept-highlight">extremo izquierdo</span> de
+                    cada subintervalo para determinar la altura del rectángulo.
+                    Para funciones crecientes, este punto siempre da el
+                    <span class="concept-highlight">valor mínimo</span> del
+                    intervalo, generando rectángulos que quedan por debajo de la
+                    curva y <span class="concept-highlight">subestiman</span> el
+                    área real.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="math-accordion acc-superior">
+              <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                  <div class="accordion-icon">△</div>
+                  Suma Superior — Rectángulos derechos
+                </div>
+                <span class="accordion-chevron">▾</span>
+              </div>
+              <div class="accordion-body">
+                <div class="accordion-content">
+                  <div class="formula-block">
+                    U<sub>n</sub> = Δx · Σ<sub>i=1</sub
+                    ><sup>n</sup> f(x<sub>i</sub>)<br />
+                    <span class="formula-var">x<sub>i</sub></span>
+                    <span class="formula-op">=</span>
+                    <span class="formula-var">a</span>
+                    <span class="formula-op">+</span>
+                    <span class="formula-var">i</span> · Δx
+                  </div>
+                  <div class="concept-text">
+                    Usa el
+                    <span class="concept-highlight">extremo derecho</span>. Para
+                    funciones crecientes, este punto es el máximo local,
+                    produciendo rectángulos que superan la curva y
+                    <span class="concept-highlight">sobreestiman</span> el área.
+                    El área verdadera siempre queda entre L<sub>n</sub> y
+                    U<sub>n</sub>:
+                    <span class="concept-highlight"
+                      >L<sub>n</sub> ≤ ∫ f ≤ U<sub>n</sub></span
+                    >.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="math-accordion acc-riemann">
+              <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                  <div class="accordion-icon">◇</div>
+                  Suma de Riemann — Punto medio
+                </div>
+                <span class="accordion-chevron">▾</span>
+              </div>
+              <div class="accordion-body">
+                <div class="accordion-content">
+                  <div class="formula-block">
+                    M<sub>n</sub> = Δx · Σ<sub>i=0</sub
+                    ><sup>n-1</sup> f(x̄<sub>i</sub>)<br />
+                    <span class="formula-var">x̄<sub>i</sub></span>
+                    <span class="formula-op">=</span>
+                    <span class="formula-var">a</span>
+                    <span class="formula-op">+</span>
+                    (<span class="formula-var">i</span> +
+                    <span class="formula-num">0.5</span>) · Δx
+                  </div>
+                  <div class="concept-text">
+                    El <span class="concept-highlight">punto medio</span> del
+                    intervalo equilibra el error: la parte que queda fuera del
+                    rectángulo se compensa con la parte interior.
+                    Matemáticamente es la aproximación de mayor orden (error
+                    O(Δx²)),
+                    <span class="concept-highlight"
+                      >convergiendo más rápido</span
+                    >
+                    a la integral exacta que los extremos.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="math-accordion acc-exacta">
+              <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion-title">
+                  <div class="accordion-icon">∞</div>
+                  Integral Exacta — Teorema Fundamental
+                </div>
+                <span class="accordion-chevron">▾</span>
+              </div>
+              <div class="accordion-body">
+                <div class="accordion-content">
+                  <div class="formula-block">
+                    ∫<sub>a</sub><sup>b</sup> f(x) dx = F(b) − F(a)<br />
+                    <span class="formula-op">donde</span> F'(x) = f(x)
+                    (antiderivada)
+                  </div>
+                  <div class="concept-text">
+                    El
+                    <span class="concept-highlight"
+                      >Teorema Fundamental del Cálculo</span
+                    >
+                    conecta diferenciación e integración. Al aumentar n → ∞,
+                    todas las sumas de Riemann convergen a este valor. La
+                    librería SymPy calcula la antiderivada simbólicamente y
+                    evalúa
+                    <span class="concept-highlight">F(b) − F(a)</span> con
+                    precisión exacta.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
