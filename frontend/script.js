@@ -400,6 +400,7 @@ function drawGraph() {
   });
 
   const dx = (lastB - lastA) / lastN;
+  const muestras = 20;
 
   const color =
     currentMethod === "inferior"
@@ -413,17 +414,26 @@ function drawGraph() {
     const x0 = lastA + i * dx;
     const x1 = x0 + dx;
 
-    let sampleX = x0;
+    let y = 0;
 
-    if (currentMethod === "superior") {
-      sampleX = x1;
+    if (currentMethod === "inferior") {
+      // Evaluamos varios puntos dentro del subintervalo y nos quedamos con el mínimo
+      const ys = Array.from({ length: muestras + 1 }, (_, j) =>
+        evaluateFunction(lastFuncion, x0 + (j * (x1 - x0)) / muestras),
+      );
+      y = Math.min(...ys);
+    } else if (currentMethod === "superior") {
+      // Evaluamos varios puntos dentro del subintervalo y nos quedamos con el máximo
+      const ys = Array.from({ length: muestras + 1 }, (_, j) =>
+        evaluateFunction(lastFuncion, x0 + (j * (x1 - x0)) / muestras),
+      );
+      y = Math.max(...ys);
+    } else if (currentMethod === "riemann") {
+      // Evaluamos en el punto medio del subintervalo
+      const sampleX = (x0 + x1) / 2;
+      y = evaluateFunction(lastFuncion, sampleX);
     }
 
-    if (currentMethod === "riemann") {
-      sampleX = (x0 + x1) / 2;
-    }
-
-    const y = evaluateFunction(lastFuncion, sampleX);
     // Rectángulo relleno
     calculator.setExpression({
       id: `rect${i}`,
@@ -460,69 +470,36 @@ function drawGraph() {
       lineWidth: 1,
     });
   }
-}
 
-updateLegend();
+  updateLegend();
+  zoomFit();
+}
 
 // Acercar gráfica
-function zoomIn() {
-  if (!calculator) return;
-
-  const bounds = calculator.graphpaperBounds.mathCoordinates;
-
-  const cx = (bounds.left + bounds.right) / 2;
-
-  const cy = (bounds.top + bounds.bottom) / 2;
-
-  const w = (bounds.right - bounds.left) * 0.8;
-
-  const h = (bounds.top - bounds.bottom) * 0.8;
-
-  calculator.setMathBounds({
-    left: cx - w / 2,
-    right: cx + w / 2,
-    bottom: cy - h / 2,
-    top: cy + h / 2,
-  });
-}
-
-// Alejar gráfica
-function zoomOut() {
-  if (!calculator) return;
-
-  const bounds = calculator.graphpaperBounds.mathCoordinates;
-
-  const width = bounds.right - bounds.left;
-
-  if (width > 500) return;
-
-  const cx = (bounds.left + bounds.right) / 2;
-
-  const cy = (bounds.top + bounds.bottom) / 2;
-
-  const w = width * 1.5;
-
-  const h = (bounds.top - bounds.bottom) * 1.5;
-
-  calculator.setMathBounds({
-    left: cx - w / 2,
-    right: cx + w / 2,
-    bottom: cy - h / 2,
-    top: cy + h / 2,
-  });
-}
-
-// Ajustar vista automáticamente
 function zoomFit() {
   if (!calculator) return;
 
   const rango = lastB - lastA;
+  const padding = rango * 0.5;
+
+  // Estimar el rango Y evaluando varios puntos
+  let yMin = 0,
+    yMax = 0;
+  const steps = 50;
+  for (let i = 0; i <= steps; i++) {
+    const x = lastA + (i / steps) * (lastB - lastA);
+    const y = evaluateFunction(lastFuncion, x);
+    yMin = Math.min(yMin, y);
+    yMax = Math.max(yMax, y);
+  }
+
+  const yPadding = (yMax - yMin) * 0.3 || 2;
 
   calculator.setMathBounds({
-    left: lastA - rango * 2,
-    right: lastB + rango * 2,
-    bottom: -10,
-    top: 20,
+    left: lastA - padding,
+    right: lastB + padding,
+    bottom: yMin - yPadding,
+    top: yMax + yPadding,
   });
 }
 
@@ -553,10 +530,12 @@ function updateLegend() {
 // Evaluar función en un valor x
 function evaluateFunction(expr, x) {
   try {
-    const safeExpr = expr.replaceAll("x", `(${x})`).replaceAll("^", "**");
-
+    const safeExpr = expr
+      .replace(/(?<![a-zA-Z])x(?![a-zA-Z])/g, `(${x})`)
+      .replace(/^\s*-/, "0-");
     return eval(safeExpr);
-  } catch {
+  } catch (e) {
+    console.error("evaluateFunction error:", e, "expr:", expr, "x:", x);
     return 0;
   }
 }

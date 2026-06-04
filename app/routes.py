@@ -44,6 +44,8 @@ def calcular():
             "integral_exacta": float(integral_exacta(funcion, a, b))
         }
 
+        print("RESULTADO:", resultado) 
+
         return jsonify(resultado)
     
     except Exception as e:
