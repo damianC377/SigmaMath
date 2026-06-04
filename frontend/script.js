@@ -39,14 +39,6 @@ function initDesmos() {
     showGrid: true,
     backgroundColor: "#f8fafc",
   });
-
-  // Vista inicial
-  calculator.setMathBounds({
-    left: -15,
-    right: 15,
-    bottom: -15,
-    top: 15,
-  });
 }
 
 // Generar inputs de coeficientes según el grado elegido
@@ -73,7 +65,7 @@ function buildCoefInputs() {
         type="number"
         class="coef-input"
         step="0.1"
-        value=""
+        value="0"
         placeholder="0">
     `;
 
@@ -390,14 +382,6 @@ function drawGraph() {
 
   calculator.setBlank();
 
-  // Reiniciar vista
-  calculator.setMathBounds({
-    left: -15,
-    right: 15,
-    bottom: -15,
-    top: 15,
-  });
-
   // Dibujar función
   calculator.setExpression({
     id: "func",
@@ -440,58 +424,45 @@ function drawGraph() {
     }
 
     const y = evaluateFunction(lastFuncion, sampleX);
+    // Rectángulo relleno
+    calculator.setExpression({
+      id: `rect${i}`,
+      latex:
+        y >= 0
+          ? `0\\le y\\le${y}\\left\\{${x0}\\le x\\le${x1}\\right\\}`
+          : `${y}\\le y\\le0\\left\\{${x0}\\le x\\le${x1}\\right\\}`,
+      color,
+      fillOpacity: 0.35,
+      lineOpacity: 0,
+    });
 
-    if (Math.abs(y) < 0.001) {
-      const visualY = 0.1;
+    // Borde superior
+    calculator.setExpression({
+      id: `top${i}`,
+      latex: `y=${y}\\left\\{${x0}\\le x\\le${x1}\\right\\}`,
+      color: "#ffffff",
+      lineWidth: 1,
+    });
 
-      calculator.setExpression({
-        id: `rect${i}`,
-        latex: `0\\le y\\le${visualY}\\left\\{${x0}\\le x\\le${x1}\\right\\}`,
-        color,
-        fillOpacity: 0.35,
-        lineOpacity: 0,
-      });
-    } else {
-      // Rectángulo relleno
-      calculator.setExpression({
-        id: `rect${i}`,
-        latex:
-          y >= 0
-            ? `0\\le y\\le${y}\\left\\{${x0}\\le x\\le${x1}\\right\\}`
-            : `${y}\\le y\\le0\\left\\{${x0}\\le x\\le${x1}\\right\\}`,
-        color,
-        fillOpacity: 0.35,
-        lineOpacity: 0,
-      });
+    // Borde izquierdo
+    calculator.setExpression({
+      id: `left${i}`,
+      latex: `x=${x0}\\left\\{${Math.min(0, y)}\\le y\\le${Math.max(0, y)}\\right\\}`,
+      color: "#ffffff",
+      lineWidth: 1,
+    });
 
-      // Borde superior
-      calculator.setExpression({
-        id: `top${i}`,
-        latex: `y=${y}\\left\\{${x0}\\le x\\le${x1}\\right\\}`,
-        color: "#ffffff",
-        lineWidth: 2,
-      });
-
-      // Borde izquierdo
-      calculator.setExpression({
-        id: `left${i}`,
-        latex: `x=${x0}\\left\\{${Math.min(0, y)}\\le y\\le${Math.max(0, y)}\\right\\}`,
-        color: "#ffffff",
-        lineWidth: 2,
-      });
-
-      // Borde derecho
-      calculator.setExpression({
-        id: `right${i}`,
-        latex: `x=${x1}\\left\\{${Math.min(0, y)}\\le y\\le${Math.max(0, y)}\\right\\}`,
-        color: "#ffffff",
-        lineWidth: 2,
-      });
-    }
+    // Borde derecho
+    calculator.setExpression({
+      id: `right${i}`,
+      latex: `x=${x1}\\left\\{${Math.min(0, y)}\\le y\\le${Math.max(0, y)}\\right\\}`,
+      color: "#ffffff",
+      lineWidth: 1,
+    });
   }
-
-  updateLegend();
 }
+
+updateLegend();
 
 // Acercar gráfica
 function zoomIn() {
